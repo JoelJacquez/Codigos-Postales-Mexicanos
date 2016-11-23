@@ -4,14 +4,15 @@
 require 'csv'
 require 'pp'
 require 'mongo'
-$mongo = Mongo::MongoClient.new.db('codigos_postales')
+$mongo = Mongo::Client.new([ '127.0.0.1:27017' ], :database => 'codigos_postales')
+
 
 estados = {}
 
 # Limpiamos el archivo de ingesta, pasándo lo de windows-latin-1 a utf8 y quitando la primera línea pendeja
 `iconv -f ISO-8859-15 -t UTF-8 CPdescarga.txt | sed '1d' > CPdescarga-utf8.txt`
 
-CSV.foreach("CPdescarga.txt", headers: true, encoding: "UTF-8", col_sep:'|', quote_char:'|') do |row|
+CSV.foreach("CPdescarga-utf8.txt", headers: true, encoding: "UTF-8", col_sep:'|', quote_char:'|') do |row|
   
   if (row.count > 15)
     pp row.to_hash()
@@ -37,9 +38,9 @@ CSV.foreach("CPdescarga.txt", headers: true, encoding: "UTF-8", col_sep:'|', quo
   if ( !estados.has_key?(estado) )
     puts "Agregando #{row['d_estado']}: #{row['c_estado']}";
     estados[estado] = row['d_estado'].strip
-    $mongo['estados'].save({_id:estado, nombre:row['d_estado']})
+    $mongo['estados'].insert_one({_id:estado, nombre:row['d_estado']})
   end
 
-  $mongo['cp'].save(doc)
+  $mongo['cp'].insert_one(doc)
 
 end
